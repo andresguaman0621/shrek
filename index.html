@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras - Noche de Shrek</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .completed {
+            text-decoration: line-through;
+            color: #6b7280;
+        }
+        
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-green-50">
+    <!-- Loading Screen -->
+    <div id="loading" class="min-h-screen bg-green-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="loading rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p class="text-green-600">Cargando lista...</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="min-h-screen bg-green-50 p-4" style="display: none;">
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg">
+            <!-- Header -->
+            <div class="bg-green-600 text-white p-6 rounded-t-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13l1.5-9M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"></path>
+                    </svg>
+                    <h1 class="text-2xl font-bold">Lista de Compras</h1>
+                </div>
+                <p class="text-green-100">🍿 Noche de Shrek 🍿</p>
+                <div class="mt-3 text-sm">
+                    <span id="progress">0 de 0 completados</span>
+                </div>
+            </div>
+
+            <!-- Shrek Image -->
+            <div class="p-4 text-center border-b">
+                <div id="shrek-image-container">
+                    <!-- Placeholder - Reemplaza con tu URL de imagen -->
+                    <div class="w-24 h-24 mx-auto rounded-full bg-green-100 border-4 border-green-200 flex items-center justify-center">
+                        <span class="text-green-600 text-sm text-center">Imagen de<br>Shrek</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">
+                    🧅 ¡Lista sincronizada en tiempo real! 🧅
+                </p>
+            </div>
+
+            <!-- Add new item -->
+            <div class="p-4 border-b">
+                <div class="flex gap-2">
+                    <input
+                        type="text"
+                        id="newItemInput"
+                        placeholder="Agregar nuevo elemento..."
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                    <button
+                        id="addButton"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-1"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Agregar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Shopping list -->
+            <div class="p-4">
+                <ul id="itemsList" class="space-y-2">
+                    <!-- Items will be inserted here -->
+                </ul>
+                <p id="emptyState" class="text-gray-500 text-center py-8" style="display: none;">
+                    No hay elementos en la lista
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 bg-gray-50 rounded-b-lg text-center text-sm text-gray-600">
+                Vamos a disfrutar viendo Shrek! 🧅💚
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+
+    <script>
+        // Firebase Configuration - REEMPLAZA CON TUS CREDENCIALES
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_PROJECT_ID.firebaseapp.com",
+            projectId: "TU_PROJECT_ID", 
+            storageBucket: "TU_PROJECT_ID.appspot.com",
+            messagingSenderId: "TU_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+
+        // URL de imagen de Shrek - REEMPLAZA CON TU URL
+        const SHREK_IMAGE_URL = "URL_DE_TU_IMAGEN_DE_SHREK_AQUI";
+
+        class ShoppingListApp {
+            constructor() {
+                this.items = [];
+                this.db = null;
+                this.unsubscribe = null;
+                this.initializeApp();
+            }
+
+            async initializeApp() {
+                try {
+                    // Intentar inicializar Firebase real
+                    if (firebaseConfig.apiKey !== "TU_API_KEY") {
+                        firebase.initializeApp(firebaseConfig);
+                        this.db = firebase.firestore();
+                        await this.initializeFirebase();
+                    } else {
+                        // Usar localStorage como fallback
+                        this.initializeLocalStorage();
+                    }
+                } catch (error) {
+                    console.log("Firebase no configurado, usando localStorage");
+                    this.initializeLocalStorage();
+                }
+
+                this.setupEventListeners();
+                this.setupShrekImage();
+                this.hideLoading();
+            }
+
+            async initializeFirebase() {
+                const collection = this.db.collection('shopping-items');
+                
+                // Escuchar cambios en tiempo real
+                this.unsubscribe = collection.orderBy('timestamp').onSnapshot((snapshot) => {
+                    this.items = [];
+                    snapshot.forEach((doc) => {
+                        this.items.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    // Si no hay items, inicializar con datos por defecto
+                    if (this.items.length === 0) {
+                        this.initializeDefaultItems();
+                    } else {
+                        this.renderItems();
+                    }
+                });
+            }
+
+            initializeLocalStorage() {
+                // Cargar datos del localStorage
+                const saved = localStorage.getItem('shrek-shopping-list');
+                this.items = saved ? JSON.parse(saved) : [];
+                
+                if (this.items.length === 0) {
+                    this.initializeDefaultItems();
+                } else {
+                    this.renderItems();
+                }
+
+                // Simular updates en tiempo real para múltiples pestañas
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'shrek-shopping-list') {
+                        this.items = JSON.parse(e.newValue || '[]');
+                        this.renderItems();
+                    }
+                });
+            }
+
+            async initializeDefaultItems() {
+                const defaultItems = [
+                    'Pan de hot dog',
+                    'Salchichas', 
+                    'Mostaza',
+                    'Ketchup',
+                    'Mayonesa',
+                    'Bebidas',
+                    'Palomitas'
+                ];
+
+                for (const name of defaultItems) {
+                    await this.addItem(name, false);
+                }
+            }
+
+            async addItem(name, shouldRender = true) {
+                const item = {
+                    id: Date.now().toString(),
+                    name: name,
+                    completed: false,
+                    timestamp: Date.now()
+                };
+
+                if (this.db) {
+                    await this.db.collection('shopping-items').doc(item.id).set(item);
+                } else {
+                    this.items.push(item);
+                    this.saveToLocalStorage();
+                    if (shouldRender) this.renderItems();
+                }
+            }
+
+            async toggleItem(id) {
+                const item = this.items.find(item => item.id === id);
+                if (!item) return;
+
+                const updates = { completed: !item.completed };
+
+                if (this.db) {
+                    await this.db.collection('shopping-items').doc(id).update(updates);
+                } else {
+                    Object.assign(item, updates);
+                    this.saveToLocalStorage();
+                    this.renderItems();
+                }
+            }
+
+            async deleteItem(id) {
+                if (this.db) {
+                    await this.db.collection('shopping-items').doc(id).delete();
+                } else {
+                    this.items = this.items.filter(item => item.id !== id);
+                    this.saveToLocalStorage();
+                    this.renderItems();
+                }
+            }
+
+            saveToLocalStorage() {
+                localStorage.setItem('shrek-shopping-list', JSON.stringify(this.items));
+                
+                // Disparar evento para otras pestañas
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'shrek-shopping-list',
+                    newValue: JSON.stringify(this.items)
+                }));
+            }
+
+            renderItems() {
+                const itemsList = document.getElementById('itemsList');
+                const emptyState = document.getElementById('emptyState');
+                const progress = document.getElementById('progress');
+
+                if (this.items.length === 0) {
+                    itemsList.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    progress.textContent = '0 de 0 completados';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                
+                const completed = this.items.filter(item => item.completed).length;
+                progress.textContent = `${completed} de ${this.items.length} completados`;
+
+                itemsList.innerHTML = this.items.map(item => this.createItemHTML(item)).join('');
+            }
+
+            createItemHTML(item) {
+                return `
+                    <li class="flex items-center gap-3 p-3 rounded-lg border transition-all fade-in ${
+                        item.completed 
+                            ? 'bg-gray-50 border-gray-200' 
+                            : 'bg-white border-gray-300 hover:border-green-300'
+                    }" data-id="${item.id}">
+                        <button class="toggle-btn flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            item.completed
+                                ? 'bg-green-600 border-green-600 text-white'
+                                : 'border-gray-300 hover:border-green-500'
+                        }">
+                            ${item.completed ? '✓' : ''}
+                        </button>
+                        
+                        <span class="flex-1 transition-all ${
+                            item.completed ? 'completed' : 'text-gray-800'
+                        }">
+                            ${item.name}
+                        </span>
+                        
+                        <button class="delete-btn flex-shrink-0 text-red-500 hover:text-red-700 p-1 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </li>
+                `;
+            }
+
+            setupEventListeners() {
+                const newItemInput = document.getElementById('newItemInput');
+                const addButton = document.getElementById('addButton');
+                const itemsList = document.getElementById('itemsList');
+
+                // Agregar item
+                addButton.addEventListener('click', () => this.handleAddItem());
+                newItemInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.handleAddItem();
+                });
+
+                // Toggle y delete items
+                itemsList.addEventListener('click', (e) => {
+                    const itemElement = e.target.closest('[data-id]');
+                    if (!itemElement) return;
+
+                    const id = itemElement.dataset.id;
+
+                    if (e.target.closest('.toggle-btn')) {
+                        this.toggleItem(id);
+                    } else if (e.target.closest('.delete-btn')) {
+                        this.deleteItem(id);
+                    }
+                });
+            }
+
+            async handleAddItem() {
+                const input = document.getElementById('newItemInput');
+                const name = input.value.trim();
+                
+                if (name) {
+                    await this.addItem(name);
+                    input.value = '';
+                }
+            }
+
+            setupShrekImage() {
+                if (SHREK_IMAGE_URL && SHREK_IMAGE_URL !== "URL_DE_TU_IMAGEN_DE_SHREK_AQUI") {
+                    const container = document.getElementById('shrek-image-container');
+                    container.innerHTML = `
+                        <img 
+                            src="${SHREK_IMAGE_URL}" 
+                            alt="Shrek" 
+                            class="w-24 h-24 mx-auto rounded-full object-cover border-4 border-green-200"
+                        />
+                    `;
+                }
+            }
+
+            hideLoading() {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+            }
+        }
+
+        // Inicializar la aplicación cuando se carga la página
+        window.addEventListener('DOMContentLoaded', () => {
+            new ShoppingListApp();
+        });
+    </script>
+</body>
+</html>
