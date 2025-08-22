@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Compras - Noche de Shrek con mi amor</title>
+    <title>Lista de Compras - Noche de Shrek</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <style>
         .completed {
@@ -64,7 +64,9 @@
                         <span class="text-green-600 text-sm text-center">Imagen de<br>Shrek</span>
                     </div>
                 </div>
-
+                <p class="text-sm text-gray-600 mt-2">
+                    🧅 ¡Lista sincronizada en tiempo real! 🧅
+                </p>
             </div>
 
             <!-- Add new item -->
@@ -100,7 +102,7 @@
 
             <!-- Footer -->
             <div class="p-4 bg-gray-50 rounded-b-lg text-center text-sm text-gray-600">
-                Vamos a disfrutar viendo Shrek corazón! 🧅💚
+                Vamos a disfrutar viendo Shrek! 🧅💚
             </div>
         </div>
     </div>
@@ -110,7 +112,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
 
     <script>
-        // Firebase Configuration - REEMPLAZA CON TUS CREDENCIALES
+        // Firebase Configuration - REEMPLAZA CON TUS CREDENCIALES REALES
+        // const firebaseConfig = {
+        //     apiKey: "PEGA_AQUI_TU_API_KEY",
+        //     authDomain: "PEGA_AQUI_TU_AUTH_DOMAIN",
+        //     projectId: "PEGA_AQUI_TU_PROJECT_ID", 
+        //     storageBucket: "PEGA_AQUI_TU_STORAGE_BUCKET",
+        //     messagingSenderId: "PEGA_AQUI_TU_MESSAGING_SENDER_ID",
+        //     appId: "PEGA_AQUI_TU_APP_ID"
+        // };
         const firebaseConfig = {
           apiKey: "AIzaSyA9TXBaxpUM2jK17qpJibrlkAfGV8sTqWo",
           authDomain: "shrek-shopping-list.firebaseapp.com",
@@ -120,6 +130,16 @@
           appId: "1:1002282590978:web:2fffef964dd6d2ca08d81b"
         };
 
+        
+        // EJEMPLO de cómo debería verse (NO uses estos datos):
+        // const firebaseConfig = {
+        //     apiKey: "AIzaSyBcdefghijklmnopqrstuv1234567890",
+        //     authDomain: "shrek-shopping-list-a1b2c.firebaseapp.com",
+        //     projectId: "shrek-shopping-list-a1b2c",
+        //     storageBucket: "shrek-shopping-list-a1b2c.appspot.com", 
+        //     messagingSenderId: "123456789012",
+        //     appId: "1:123456789012:web:abc123def456ghi789"
+        // };
 
         // URL de imagen de Shrek - REEMPLAZA CON TU URL
         const SHREK_IMAGE_URL = "https://static1.moviewebimages.com/wordpress/wp-content/uploads/article/9XCSn4jBNHjJCIs2AzYQgkrY87Maal.jpg?q=50&fit=contain&w=1200";
@@ -163,12 +183,8 @@
                         this.items.push({ id: doc.id, ...doc.data() });
                     });
                     
-                    // Si no hay items, inicializar con datos por defecto
-                    if (this.items.length === 0) {
-                        this.initializeDefaultItems();
-                    } else {
-                        this.renderItems();
-                    }
+                    // Siempre renderizar, sin agregar elementos por defecto
+                    this.renderItems();
                 });
             }
 
@@ -177,11 +193,8 @@
                 const saved = localStorage.getItem('shrek-shopping-list');
                 this.items = saved ? JSON.parse(saved) : [];
                 
-                if (this.items.length === 0) {
-                    this.initializeDefaultItems();
-                } else {
-                    this.renderItems();
-                }
+                // Siempre renderizar, sin agregar elementos por defecto
+                this.renderItems();
 
                 // Simular updates en tiempo real para múltiples pestañas
                 window.addEventListener('storage', (e) => {
@@ -190,22 +203,6 @@
                         this.renderItems();
                     }
                 });
-            }
-
-            async initializeDefaultItems() {
-                const defaultItems = [
-                    'Pan de hot dog',
-                    'Salchichas', 
-                    'Mostaza',
-                    'Ketchup',
-                    'Mayonesa',
-                    'Bebidas',
-                    'Palomitas'
-                ];
-
-                for (const name of defaultItems) {
-                    await this.addItem(name, false);
-                }
             }
 
             async addItem(name, shouldRender = true) {
